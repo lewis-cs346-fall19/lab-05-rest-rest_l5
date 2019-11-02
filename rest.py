@@ -79,32 +79,40 @@ def addPlayer():
         """ % main)
     else:
         query = ("insert into fantasyplayers (name, position, week, points) \
-                values (%s, %s, %s, %s)" % (name, pos, week, pts))
+                values (\"%s\", \"%s\", %s, %s)" % (name, pos, week, pts))
         cursor = conn.cursor()
         cursor.execute(query)
         new_id = cursor.lastrowid
-        cursor.commit()
         cursor.close()
+        conn.commit()
+        conn.close()
+        reurl = "ff/" + str(new_id)
         print("Status: 302 Redirect")
-        print("Location: rest.py/ff/%s\n" % new_id)
+        print("Location: %s" % reurl)
+        print()
 
 
 def gets():
-    cursor = conn.cursor()
-    cursor.execute("select * from fantasyplayers;")
-    results = [dict((cursor.description[i][0], value) \
-               for i, value in enumerate(row)) for row in cursor.fetchall()]
-    cursor.close()
-    for item in results:
-        item["url"] = url + str(item["id"])
-
     json_id = path_info.strip('/').split('/')[-1]
 
     if json_id.isdigit():
+        cursor = conn.cursor()
+        cursor.execute("select * from fantasyplayers where id = %s" % json_id)
+        result = [dict((cursor.description[i][0], value) \
+                  for i, value in enumerate(row)) for row in cursor.fetchall()]
+        cursor.close()
+        result[0]["url"] = url + str(result[0]["id"])
         print("Content-type: application/json")
         print("Status: 200 OK\n")
-        print(json.dumps(results[int(json_id)]))
+        print(json.dumps(result, indent=2))
     else:
+        cursor = conn.cursor()
+        cursor.execute("select * from fantasyplayers")
+        results = [dict((cursor.description[i][0], value) \
+                   for i, value in enumerate(row)) for row in cursor.fetchall()]
+        cursor.close()
+        for item in results:
+            item["url"] = url + str(item["id"])
         results_json = json.dumps(results, indent=2)
         print("Content-type: application/json")
         print("Status: 200 OK\n")
